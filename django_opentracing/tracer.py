@@ -111,18 +111,25 @@ def initialize_global_tracer():
 
     # Short circuit without taking a lock
     if initialize_global_tracer.complete:
+        print "TRACE: shouldn't happen (complete)"
         return
     with initialize_global_tracer.lock:
+        print "TRACE: Grabbed lock..."
         if initialize_global_tracer.complete:
             return
         if hasattr(settings, 'OPENTRACING_TRACER'):
             # Backwards compatibility with the old way of defining the tracer
             opentracing.tracer = settings.OPENTRACING_TRACER._tracer
         else:
+            print "TRACE: Grabbing settings..."
             tracer_callable = getattr(settings, 'OPENTRACING_TRACER_CALLABLE', 'opentracing.Tracer')
             tracer_parameters = getattr(settings, 'OPENTRACING_TRACER_PARAMETERS', {})
+            print "TRACE: Settings: {} || {}".format(tracer_callable, tracer_parameters)
             opentracing.tracer = import_string(tracer_callable)(**tracer_parameters)
+            print "TRACE: opentracing.tracer: {}".format(opentracing.tracer)
             settings.OPENTRACING_TRACER = DjangoTracer()
+            print "Settings: {}".format(settings.OPENTRACING_TRACER)
+
         initialize_global_tracer.complete = True
 
 

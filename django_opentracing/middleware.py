@@ -24,6 +24,7 @@ class OpenTracingMiddleware(MiddlewareMixin):
     @property
     def tracer(self):
         if self._tracer is None:
+            print "TRACE: Tracer is none, initializing global"
             initialize_global_tracer()
             self._tracer = DjangoTracer()
         return self._tracer
