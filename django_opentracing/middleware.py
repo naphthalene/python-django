@@ -1,6 +1,5 @@
 from django.conf import settings
-from django_opentracing.tracer import initialize_global_tracer
-import opentracing
+from django_opentracing.tracer import initialize_global_tracer, DjangoTracer
 try:
     # Django >= 1.10
     from django.utils.deprecation import MiddlewareMixin
@@ -26,7 +25,7 @@ class OpenTracingMiddleware(MiddlewareMixin):
     def tracer(self):
         if self._tracer is None:
             initialize_global_tracer()
-            self._tracer = opentracing.tracer
+            self._tracer = DjangoTracer()
         return self._tracer
 
     def process_view(self, request, view_func, view_args, view_kwargs):
