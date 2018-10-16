@@ -1,5 +1,6 @@
 from django.conf import settings
 from django_opentracing.tracer import initialize_global_tracer
+import opentracing
 try:
     # Django >= 1.10
     from django.utils.deprecation import MiddlewareMixin
@@ -21,25 +22,28 @@ class OpenTracingMiddleware(MiddlewareMixin):
         self.get_response = get_response
         self._tracer = None
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        # Lazily initialize the Tracer for compatibility with Jaeger and Django>=1.10
+    @property
+    def tracer(self):
         if self._tracer is None:
             initialize_global_tracer()
-            self._tracer = settings.OPENTRACING_TRACER
+            self._tracer = opentracing.tracer
+        return self._tracer
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        # Lazily initialize the Tracer for compatibility with Jaeger and Django>=1.10
 
         # determine whether this middleware should be applied
         # NOTE: if tracing is on but not tracing all requests, then the tracing occurs
         # through decorator functions rather than middleware
-        if not self._tracer._trace_all:
+        if not self.tracer._trace_all:
             return None
 
         if hasattr(settings, 'OPENTRACING_TRACED_ATTRIBUTES'):
             traced_attributes = getattr(settings, 'OPENTRACING_TRACED_ATTRIBUTES')
         else:
             traced_attributes = []
-        self._tracer._apply_tracing(request, view_func, traced_attributes)
+        self.tracer._apply_tracing(request, view_func, traced_attributes)
 
     def process_response(self, request, response):
-        self._tracer._finish_tracing(request)
+        self.tracer._finish_tracing(request)
         return response
-
